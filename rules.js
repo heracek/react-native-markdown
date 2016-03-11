@@ -135,6 +135,7 @@ module.exports = function(styles) {
 
           return React.createElement(View, {
             key: i,
+            style: styles.listRow,
           }, [bullet, listItem]);
         });
 

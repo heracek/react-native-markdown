@@ -61,12 +61,19 @@ var styles = {
   listItem: {
     flexDirection: 'row'
   },
+  listItemText: {
+    flex: 1,
+  },
   listItemBullet: {
     fontSize: 20,
     lineHeight: 20
   },
   listItemNumber: {
     fontWeight: 'bold'
+  },
+  listRow: {
+    flexDirection: 'row',
+    alignSelf: 'auto',
   },
   paragraph: {
     marginTop: 10,
