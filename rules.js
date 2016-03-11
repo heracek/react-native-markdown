@@ -3,19 +3,24 @@ var {
   Image,
   Text,
   View,
+  Linking,
 } = React;
+var Lightbox = require('react-native-lightbox');
+
 var SimpleMarkdown = require('simple-markdown');
 var _ = require('lodash');
+var deviceWidth = React.Dimensions.get('window').width
 
-module.exports = function(styles) {
+module.exports = function(styles, navigator) {
   return {
     autolink: {
       react: function(node, output, state) {
         state.withinText = true;
+        var pressHandler = function() { Linking.openURL(node.target) };
         return React.createElement(Text, {
           key: state.key,
           style: styles.autolink,
-          onPress: _.noop
+          onPress: pressHandler
         }, output(node.content, state));
       }
     },
@@ -82,11 +87,20 @@ module.exports = function(styles) {
     },
     image: {
       react: function(node, output, state) {
-        return React.createElement(Image, {
+        var target = node.target + '?w=' + deviceWidth * 4
+        var image = React.createElement(Image, {
           key: state.key,
-          source: { uri: node.target },
-          style: styles.image
+          // resizeMode: 'contain',
+          source: { uri: target },
+          style: styles.image,
         });
+        if (navigator) {
+          return React.createElement(Lightbox, {
+            activeProps: styles.imageBox,
+            navigator,
+          }, image)
+        }
+        return image
       }
     },
     inlineCode: {
@@ -101,9 +115,11 @@ module.exports = function(styles) {
     link: {
       react: function(node, output, state) {
         state.withinText = true;
+        var pressHandler = function() { Linking.openURL(node.target) };
         return React.createElement(Text, {
           key: state.key,
-          style: styles.autolink
+          style: styles.autolink,
+          onPress: pressHandler
         }, output(node.content, state));
       }
     },
@@ -135,6 +151,7 @@ module.exports = function(styles) {
 
           return React.createElement(View, {
             key: i,
+            style: styles.listRow,
           }, [bullet, listItem]);
         });
 
@@ -161,9 +178,9 @@ module.exports = function(styles) {
     },
     paragraph: {
       react: function(node, output, state) {
-        return React.createElement(Text, {
+        return React.createElement(View, {
           key: state.key,
-          style: styles.paragraph
+          style: styles.paragraph,
         }, output(node.content, state));
       }
     },
@@ -206,9 +223,22 @@ module.exports = function(styles) {
     },
     text: {
       react: function(node, output, state) {
-        return React.createElement(Text, {
-          style: styles.text,
-        }, node.content);
+        // Breaking words up in order to allow for text reflowing in flexbox
+        var words = node.content.split(' ');
+        words = _.map(words, function(word, i) {
+          var elements = [];
+          if (i != words.length - 1) {
+            word = word + ' ';
+          }
+          var textStyles = [styles.text];
+          if (!state.withinText) {
+            textStyles.push(styles.plainText);
+          }
+          return React.createElement(Text, {
+            style: textStyles
+          }, word);
+        });
+        return words;
       }
     },
     u: {
@@ -223,10 +253,12 @@ module.exports = function(styles) {
     url: {
       react: function(node, output, state) {
         state.withinText = true;
+        var pressHandler = function() { Linking.openURL(node.target) };
+
         return React.createElement(Text, {
           key: state.key,
-          style: styles.url,
-          onPress: _.noop
+          style: styles.autolink,
+          onPress: pressHandler
         }, output(node.content, state));
       }
     }
