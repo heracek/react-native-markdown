@@ -3,7 +3,9 @@ var {
   Image,
   Text,
   View,
+  Linking,
 } = React;
+
 var SimpleMarkdown = require('simple-markdown');
 var _ = require('lodash');
 
@@ -12,10 +14,11 @@ module.exports = function(styles) {
     autolink: {
       react: function(node, output, state) {
         state.withinText = true;
+        var pressHandler = function() { Linking.openURL(node.target) };
         return React.createElement(Text, {
           key: state.key,
           style: styles.autolink,
-          onPress: _.noop
+          onPress: pressHandler
         }, output(node.content, state));
       }
     },
@@ -84,6 +87,7 @@ module.exports = function(styles) {
       react: function(node, output, state) {
         return React.createElement(Image, {
           key: state.key,
+          // resizeMode: 'contain',
           source: { uri: node.target },
           style: styles.image
         });
@@ -101,9 +105,11 @@ module.exports = function(styles) {
     link: {
       react: function(node, output, state) {
         state.withinText = true;
+        var pressHandler = function() { Linking.openURL(node.target) };
         return React.createElement(Text, {
           key: state.key,
-          style: styles.autolink
+          style: styles.autolink,
+          onPress: pressHandler
         }, output(node.content, state));
       }
     },
@@ -162,10 +168,18 @@ module.exports = function(styles) {
     },
     paragraph: {
       react: function(node, output, state) {
-        return React.createElement(Text, {
+        // Allow image to drop in next line within the paragraph
+        var paragraphStyle = styles.paragraph
+        if (_.some(node.content, {type: 'image'})) {
+          state.withinParagraphWithImage = true
+          paragraphStyle = styles.paragraphWithImage
+        }
+        var paragraph = React.createElement(View, {
           key: state.key,
-          style: styles.paragraph
+          style: paragraphStyle
         }, output(node.content, state));
+        state.withinParagraphWithImage = false
+        return paragraph
       }
     },
     strong: {
@@ -207,9 +221,28 @@ module.exports = function(styles) {
     },
     text: {
       react: function(node, output, state) {
-        return React.createElement(Text, {
-          style: styles.text,
-        }, node.content);
+        // Breaking words up in order to allow for text reflowing in flexbox
+        var words = node.content.split(' ');
+        words = _.map(words, function(word, i) {
+          var elements = [];
+          if (i != words.length - 1) {
+            word = word + ' ';
+          }
+          var textStyles = [styles.text];
+          if (!state.withinText) {
+            textStyles.push(styles.plainText);
+          }
+          return React.createElement(Text, {
+            style: textStyles
+          }, word);
+        });
+        if (state.withinParagraphWithImage) {
+          return React.createElement(View, {
+            key: state.key,
+            style: styles.textRow,
+          }, words);
+        }
+        return words;
       }
     },
     u: {
@@ -224,10 +257,12 @@ module.exports = function(styles) {
     url: {
       react: function(node, output, state) {
         state.withinText = true;
+        var pressHandler = function() { Linking.openURL(node.target) };
+
         return React.createElement(Text, {
           key: state.key,
-          style: styles.url,
-          onPress: _.noop
+          style: styles.autolink,
+          onPress: pressHandler
         }, output(node.content, state));
       }
     }

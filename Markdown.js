@@ -5,7 +5,13 @@ var {
 var _ = require('lodash');
 var SimpleMarkdown = require('simple-markdown');
 
+const deviceHeight = React.Dimensions.get('window').height
+const deviceWidth = React.Dimensions.get('window').width
+
 var styles = {
+  autolink: {
+    color: 'blue'
+  },
   view: {
   },
   codeBlock: {
@@ -44,8 +50,11 @@ var styles = {
     height: 1
   },
   image: {
-    height: 50, // TODO: React Native needs to support auto image size
-    width: 50 // TODO: React Native needs to support auto image size
+    flex: 1,
+    height: deviceHeight * 0.2,
+    width: deviceWidth,
+    // height: 50, // TODO: React Native needs to support auto image size
+    // width: 50 // TODO: React Native needs to support auto image size
   },
   inlineCode: {
     backgroundColor: '#eeeeee',
@@ -73,13 +82,19 @@ var styles = {
   },
   listRow: {
     flexDirection: 'row',
-    alignSelf: 'auto',
   },
   paragraph: {
     marginTop: 10,
     marginBottom: 10,
     flexWrap: 'wrap',
     flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'flex-start'
+  },
+  paragraphWithImage: {
+    flex: 1,
+    marginTop: 10,
+    marginBottom: 10,
     alignItems: 'flex-start',
     justifyContent: 'flex-start'
   },
@@ -115,6 +130,9 @@ var styles = {
   },
   text: {
     color: '#222222'
+  },
+  textRow: {
+    flexDirection: 'row',
   },
   u: {
     borderColor: '#222222',
