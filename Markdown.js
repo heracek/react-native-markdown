@@ -5,7 +5,13 @@ var {
 var _ = require('lodash');
 var SimpleMarkdown = require('simple-markdown');
 
+const deviceHeight = React.Dimensions.get('window').height
+const deviceWidth = React.Dimensions.get('window').width
+
 var styles = {
+  autolink: {
+    color: 'blue'
+  },
   view: {
   },
   codeBlock: {
@@ -44,8 +50,16 @@ var styles = {
     height: 1
   },
   image: {
-    height: 50, // TODO: React Native needs to support auto image size
-    width: 50 // TODO: React Native needs to support auto image size
+    flex: 1,
+    height: deviceHeight * 0.2,
+    width: deviceWidth,
+    // height: 50, // TODO: React Native needs to support auto image size
+    // width: 50 // TODO: React Native needs to support auto image size
+  },
+  imageBox: {
+    flex: 1,
+    width: deviceWidth,
+    resizeMode: 'contain',
   },
   inlineCode: {
     backgroundColor: '#eeeeee',
@@ -61,6 +75,9 @@ var styles = {
   listItem: {
     flexDirection: 'row'
   },
+  listItemText: {
+    flex: 1,
+  },
   listItemBullet: {
     fontSize: 20,
     lineHeight: 20
@@ -68,11 +85,21 @@ var styles = {
   listItemNumber: {
     fontWeight: 'bold'
   },
+  listRow: {
+    flexDirection: 'row',
+  },
   paragraph: {
     marginTop: 10,
     marginBottom: 10,
     flexWrap: 'wrap',
     flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'flex-start'
+  },
+  paragraphWithImage: {
+    flex: 1,
+    marginTop: 10,
+    marginBottom: 10,
     alignItems: 'flex-start',
     justifyContent: 'flex-start'
   },
@@ -109,6 +136,9 @@ var styles = {
   text: {
     color: '#222222'
   },
+  textRow: {
+    flexDirection: 'row',
+  },
   u: {
     borderColor: '#222222',
     borderBottomWidth: 1
@@ -126,7 +156,7 @@ var Markdown = React.createClass({
 
   componentWillMount: function() {
     var mergedStyles = _.merge({}, styles, this.props.style);
-    var rules = require('./rules')(mergedStyles);
+    var rules = require('./rules')(mergedStyles, this.props.navigator);
     rules = _.merge({}, SimpleMarkdown.defaultRules, rules);
 
     var parser = SimpleMarkdown.parserFor(rules);
@@ -135,6 +165,13 @@ var Markdown = React.createClass({
       return parser(blockSource, {inline: false});
     };
     this.renderer = SimpleMarkdown.reactFor(SimpleMarkdown.ruleOutput(rules, 'react'));
+  },
+
+
+  componentDidMount: function() {
+    if (this.props.onLoad) {
+      this.props.onLoad()
+    }
   },
 
   render: function() {
