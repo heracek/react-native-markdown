@@ -56,6 +56,11 @@ var styles = {
     // height: 50, // TODO: React Native needs to support auto image size
     // width: 50 // TODO: React Native needs to support auto image size
   },
+  imageBox: {
+    flex: 1,
+    width: deviceWidth,
+    resizeMode: 'contain',
+  },
   inlineCode: {
     backgroundColor: '#eeeeee',
     borderColor: '#dddddd',
@@ -151,7 +156,7 @@ var Markdown = React.createClass({
 
   componentWillMount: function() {
     var mergedStyles = _.merge({}, styles, this.props.style);
-    var rules = require('./rules')(mergedStyles);
+    var rules = require('./rules')(mergedStyles, this.props.navigator);
     rules = _.merge({}, SimpleMarkdown.defaultRules, rules);
 
     var parser = SimpleMarkdown.parserFor(rules);
@@ -160,6 +165,13 @@ var Markdown = React.createClass({
       return parser(blockSource, {inline: false});
     };
     this.renderer = SimpleMarkdown.reactFor(SimpleMarkdown.ruleOutput(rules, 'react'));
+  },
+
+
+  componentDidMount: function() {
+    if (this.props.onLoad) {
+      this.props.onLoad()
+    }
   },
 
   render: function() {

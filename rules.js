@@ -5,11 +5,13 @@ var {
   View,
   Linking,
 } = React;
+var Lightbox = require('react-native-lightbox');
 
 var SimpleMarkdown = require('simple-markdown');
 var _ = require('lodash');
+var deviceWidth = React.Dimensions.get('window').width
 
-module.exports = function(styles) {
+module.exports = function(styles, navigator) {
   return {
     autolink: {
       react: function(node, output, state) {
@@ -85,12 +87,20 @@ module.exports = function(styles) {
     },
     image: {
       react: function(node, output, state) {
-        return React.createElement(Image, {
+        var target = node.target + '?w=' + deviceWidth * 4
+        var image = React.createElement(Image, {
           key: state.key,
           // resizeMode: 'contain',
-          source: { uri: node.target },
-          style: styles.image
+          source: { uri: target },
+          style: styles.image,
         });
+        if (navigator) {
+          return React.createElement(Lightbox, {
+            activeProps: styles.imageBox,
+            navigator,
+          }, image)
+        }
+        return image
       }
     },
     inlineCode: {
@@ -168,18 +178,10 @@ module.exports = function(styles) {
     },
     paragraph: {
       react: function(node, output, state) {
-        // Allow image to drop in next line within the paragraph
-        var paragraphStyle = styles.paragraph
-        if (_.some(node.content, {type: 'image'})) {
-          state.withinParagraphWithImage = true
-          paragraphStyle = styles.paragraphWithImage
-        }
-        var paragraph = React.createElement(View, {
+        return React.createElement(View, {
           key: state.key,
-          style: paragraphStyle
+          style: styles.paragraph,
         }, output(node.content, state));
-        state.withinParagraphWithImage = false
-        return paragraph
       }
     },
     strong: {
@@ -236,12 +238,6 @@ module.exports = function(styles) {
             style: textStyles
           }, word);
         });
-        if (state.withinParagraphWithImage) {
-          return React.createElement(View, {
-            key: state.key,
-            style: styles.textRow,
-          }, words);
-        }
         return words;
       }
     },
