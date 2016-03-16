@@ -6,6 +6,9 @@ var _ = require('lodash');
 var SimpleMarkdown = require('simple-markdown');
 
 var styles = {
+  autolink: {
+    color: 'blue'
+  },
   view: {
   },
   codeBlock: {
@@ -47,6 +50,10 @@ var styles = {
     height: 50, // TODO: React Native needs to support auto image size
     width: 50 // TODO: React Native needs to support auto image size
   },
+  imageBox: {
+    flex: 1,
+    resizeMode: 'contain',
+  },
   inlineCode: {
     backgroundColor: '#eeeeee',
     borderColor: '#dddddd',
@@ -61,6 +68,9 @@ var styles = {
   listItem: {
     flexDirection: 'row'
   },
+  listItemText: {
+    flex: 1,
+  },
   listItemBullet: {
     fontSize: 20,
     lineHeight: 20
@@ -68,11 +78,21 @@ var styles = {
   listItemNumber: {
     fontWeight: 'bold'
   },
+  listRow: {
+    flexDirection: 'row',
+  },
   paragraph: {
     marginTop: 10,
     marginBottom: 10,
     flexWrap: 'wrap',
     flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'flex-start'
+  },
+  paragraphWithImage: {
+    flex: 1,
+    marginTop: 10,
+    marginBottom: 10,
     alignItems: 'flex-start',
     justifyContent: 'flex-start'
   },
@@ -109,6 +129,9 @@ var styles = {
   text: {
     color: '#222222'
   },
+  textRow: {
+    flexDirection: 'row',
+  },
   u: {
     borderColor: '#222222',
     borderBottomWidth: 1
@@ -125,8 +148,17 @@ var Markdown = React.createClass({
   },
 
   componentWillMount: function() {
+    if (this.props.enableLightBox && !this.props.navigator) {
+      throw new Error('props.navigator must be specified when enabling lightbox')
+    }
+    var opts = {
+      enableLightBox: this.props.enableLightBox,
+      navigator: this.props.navigator,
+      imageParam: this.props.imageParam,
+    }
+
     var mergedStyles = _.merge({}, styles, this.props.style);
-    var rules = require('./rules')(mergedStyles);
+    var rules = require('./rules')(mergedStyles, opts);
     rules = _.merge({}, SimpleMarkdown.defaultRules, rules);
 
     var parser = SimpleMarkdown.parserFor(rules);
@@ -135,6 +167,13 @@ var Markdown = React.createClass({
       return parser(blockSource, {inline: false});
     };
     this.renderer = SimpleMarkdown.reactFor(SimpleMarkdown.ruleOutput(rules, 'react'));
+  },
+
+
+  componentDidMount: function() {
+    if (this.props.onLoad) {
+      this.props.onLoad()
+    }
   },
 
   render: function() {

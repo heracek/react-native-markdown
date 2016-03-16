@@ -3,19 +3,25 @@ var {
   Image,
   Text,
   View,
+  Linking,
 } = React;
+var Lightbox = require('react-native-lightbox');
+
 var SimpleMarkdown = require('simple-markdown');
 var _ = require('lodash');
 
-module.exports = function(styles) {
+module.exports = function(styles, opts={}) {
+  const enableLightBox = opts.enableLightBox || false
+  const navigator = opts.navigator
   return {
     autolink: {
       react: function(node, output, state) {
         state.withinText = true;
+        var pressHandler = function() { Linking.openURL(node.target) };
         return React.createElement(Text, {
           key: state.key,
           style: styles.autolink,
-          onPress: _.noop
+          onPress: pressHandler
         }, output(node.content, state));
       }
     },
@@ -66,10 +72,13 @@ module.exports = function(styles) {
     heading: {
       react: function(node, output, state) {
         state.withinText = true;
-        return React.createElement(Text, {
+        state.withinHeading = true;
+        const ret = React.createElement(Text, {
           key: state.key,
           style: [styles.heading, styles['heading' + node.level]]
         }, output(node.content, state));
+        state.withinHeading = false;
+        return ret;
       }
     },
     hr: {
@@ -79,11 +88,21 @@ module.exports = function(styles) {
     },
     image: {
       react: function(node, output, state) {
-        return React.createElement(Image, {
+        var imageParam = opts.imageParam? opts.imageParam : ''
+        var target = node.target + imageParam
+        var image = React.createElement(Image, {
           key: state.key,
-          source: { uri: node.target },
-          style: styles.image
+          // resizeMode: 'contain',
+          source: { uri: target },
+          style: styles.image,
         });
+        if (enableLightBox) {
+          return React.createElement(Lightbox, {
+            activeProps: styles.imageBox,
+            navigator,
+          }, image)
+        }
+        return image
       }
     },
     inlineCode: {
@@ -98,9 +117,11 @@ module.exports = function(styles) {
     link: {
       react: function(node, output, state) {
         state.withinText = true;
+        var pressHandler = function() { Linking.openURL(node.target) };
         return React.createElement(Text, {
           key: state.key,
-          style: styles.autolink
+          style: styles.autolink,
+          onPress: pressHandler
         }, output(node.content, state));
       }
     },
@@ -110,15 +131,30 @@ module.exports = function(styles) {
         var items = _.map(node.items, function(item, i) {
           var bullet;
           if (node.ordered) {
-            bullet = React.createElement(Text, { style: styles.listItemNumber  }, (i + 1) + '. ');
+            bullet = React.createElement(Text, { key: 0, style: styles.listItemNumber }, (i + 1) + '. ');
           }
           else {
-            bullet = React.createElement(Text, { style: styles.listItemBullet }, '\u2022 ');
+            bullet = React.createElement(Text, { key: 0, style: styles.listItemBullet }, '\u2022 ');
           }
+
+          var content = output(item, state);
+          var listItem;
+          if (_.includes(['text', 'paragraph'], (_.head(item) || {}).type)) {
+            listItem = React.createElement(Text, {
+              style: styles.listItemText,
+              key: 1
+            }, content);
+          } else {
+            listItem = React.createElement(View, {
+              style: styles.listItem,
+              key: 1
+            }, content);
+          }
+
           return React.createElement(View, {
             key: i,
-            style: styles.listItem
-          }, [bullet, output(item, state)]);
+            style: styles.listRow,
+          }, [bullet, listItem]);
         });
 
         return React.createElement(View, { key: state.key, style: styles.list }, items);
@@ -144,9 +180,19 @@ module.exports = function(styles) {
     },
     paragraph: {
       react: function(node, output, state) {
-        return React.createElement(View, {
+        // Allow image to drop in next line within the paragraph
+        if (_.some(node.content, {type: 'image'})) {
+          state.withinParagraphWithImage = true
+          var paragraph = React.createElement(View, {
+            key: state.key,
+            style: styles.paragraphWithImage,
+          }, output(node.content, state));
+          state.withinParagraphWithImage = false
+          return paragraph
+        }
+        return React.createElement(Text, {
           key: state.key,
-          style: styles.paragraph
+          style: styles.paragraph,
         }, output(node.content, state));
       }
     },
@@ -163,11 +209,12 @@ module.exports = function(styles) {
       react: function(node, output, state) {
         var headers = _.map(node.header, function(content, i) {
           return React.createElement(Text, {
-            style: styles.tableHeaderCell
+            key: i,
+            style: styles.tableHeaderCell,
           }, output(content, state));
         });
 
-        var header = React.createElement(View, { style: styles.tableHeader }, headers);
+        var header = React.createElement(View, { key: -1, style: styles.tableHeader }, headers);
 
         var rows = _.map(node.cells, function(row, r) {
           var cells = _.map(row, function(content, c) {
@@ -188,22 +235,9 @@ module.exports = function(styles) {
     },
     text: {
       react: function(node, output, state) {
-        // Breaking words up in order to allow for text reflowing in flexbox
-        var words = node.content.split(' ');
-        words = _.map(words, function(word, i) {
-          var elements = [];
-          if (i != words.length - 1) {
-            word = word + ' ';
-          }
-          var textStyles = [styles.text];
-          if (!state.withinText) {
-            textStyles.push(styles.plainText);
-          }
-          return React.createElement(Text, {
-            style: textStyles
-          }, word);
-        });
-        return words;
+        return React.createElement(Text, {
+          style: styles.text,
+        }, node.content);
       }
     },
     u: {
@@ -218,10 +252,12 @@ module.exports = function(styles) {
     url: {
       react: function(node, output, state) {
         state.withinText = true;
+        var pressHandler = function() { Linking.openURL(node.target) };
+
         return React.createElement(Text, {
           key: state.key,
-          style: styles.url,
-          onPress: _.noop
+          style: styles.autolink,
+          onPress: pressHandler
         }, output(node.content, state));
       }
     }
