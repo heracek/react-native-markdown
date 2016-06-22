@@ -1,7 +1,8 @@
-var React = require('react-native');
+var React = require('react');
+var ReactNative = require('react-native');
 var {
   View
-} = React;
+} = ReactNative;
 var _ = require('lodash');
 var SimpleMarkdown = require('simple-markdown');
 
