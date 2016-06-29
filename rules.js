@@ -8,6 +8,18 @@ var {
 var SimpleMarkdown = require('simple-markdown');
 var _ = require('lodash');
 
+var inlineRegex = function(regex) {
+    var match = function(source, state) {
+        if (state.inline) {
+            return regex.exec(source);
+        } else {
+            return null;
+        }
+    };
+    match.regex = regex;
+    return match;
+};
+
 module.exports = function(styles) {
   return {
     autolink: {
@@ -206,9 +218,19 @@ module.exports = function(styles) {
       }
     },
     text: {
+      match: inlineRegex(
+        /^[\s\S]+?(?=[^0-9A-Za-z\s\u00c0-\uffff]|\n\n| {2,}\n|\w+:\S|$)/
+      ),
       react: function(node, output, state) {
         // Breaking words up in order to allow for text reflowing in flexbox
+
         var words = node.content.split(' ');
+
+        if (node.content.match(/^[0-9 ]+$/)) {
+          words = [node.content];
+        } else {
+          words = node.content.split(' ');
+        }
 
         var outputWords = _.map(words, function(word, i) {
           var elements = [];
